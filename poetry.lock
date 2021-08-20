@@ -168,18 +168,10 @@ category = "dev"
 optional = false
 python-versions = ">=3.6"
 
-[[package]]
-name = "yapf"
-version = "0.31.0"
-description = "A formatter for Python code."
-category = "dev"
-optional = false
-python-versions = "*"
-
 [metadata]
 lock-version = "1.1"
 python-versions = "3.9"
-content-hash = "2c9ca0f7f29cc37dbd3b6ddd393ea9f77ea9e82db6593e84102006151b30acb7"
+content-hash = "bb1bdbe7a64fcbe21bf9bfd2c14c192b39f8d5961214976e4f0ef9997576c9a8"
 
 [metadata.files]
 appdirs = [
@@ -411,8 +403,4 @@ six = [
 tomli = [
     {file = "tomli-1.2.1-py3-none-any.whl", hash = "sha256:8dd0e9524d6f386271a36b41dbf6c57d8e32fd96fd22b6584679dc569d20899f"},
     {file = "tomli-1.2.1.tar.gz", hash = "sha256:a5b75cb6f3968abb47af1b40c1819dc519ea82bcc065776a866e8d74c5ca9442"},
-]
-yapf = [
-    {file = "yapf-0.31.0-py2.py3-none-any.whl", hash = "sha256:e3a234ba8455fe201eaa649cdac872d590089a18b661e39bbac7020978dd9c2e"},
-    {file = "yapf-0.31.0.tar.gz", hash = "sha256:408fb9a2b254c302f49db83c59f9aa0b4b0fd0ec25be3a5c51181327922ff63d"},
 ]
