@@ -1,0 +1,116 @@
+import torch
+from sklearn.metrics import accuracy_score
+#from tqdm.notebook import tqdm
+from transformers import AdamW
+
+from model import Net
+
+from pathlib import Path
+from dataset import RingFingerDataset
+
+#base_data_dir = Path("data/outputs")
+base_data_dir = Path("../../ring-finger-semseg/data/outputs/")
+
+numbers_json = {
+    "training": "data/contour_checked_numbers_training.json",
+    "validation": "data/contour_checked_numbers_validation.json",
+}
+
+train_dataset = RingFingerDataset(base_data_dir / "training", numbers_json["training"])
+valid_dataset = RingFingerDataset(base_data_dir / "validation", numbers_json["validation"])
+
+from torch import nn
+from torch.utils.data import DataLoader
+
+train_dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+valid_dataloader = DataLoader(valid_dataset, batch_size=8)
+
+from tqdm import tqdm
+
+
+model = Net()
+
+optimizer = AdamW(model.parameters(), lr=0.00006)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+print("Model Initialized!")
+
+# from torch.utils.tensorboard import SummaryWriter
+# writer = SummaryWriter()
+
+for epoch in range(1, 1+ 1):  # loop over the dataset multiple times
+    print("Epoch:", epoch)
+    pbar = tqdm(train_dataloader)
+    accuracies = []
+    losses = []
+    val_accuracies = []
+    val_losses = []
+    model.train()
+    for idx, batch in enumerate(pbar):
+        # get the inputs;
+        masks = batch[1]
+        print(masks.unique())
+        masks[masks==2] = -1
+        # masks.to(device)
+        points = batch[2]
+        print(masks.shape, masks.dtype, points.shape)
+
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward
+        outputs = model(masks=masks)
+        print(outputs)
+
+        # evaluate
+        upsampled_logits = nn.functional.interpolate(
+            outputs.logits, size=labels.shape[-2:], mode="bilinear", align_corners=False
+        )
+        predicted = upsampled_logits.argmax(dim=1)
+
+        mask = labels != 0  # we don't include the background class in the accuracy calculation
+
+        pred_labels = predicted[mask].detach().cpu().numpy()
+        true_labels = labels[mask].detach().cpu().numpy()
+        accuracy = accuracy_score(pred_labels, true_labels)
+        loss = outputs.loss
+        accuracies.append(accuracy)
+        losses.append(loss.item())
+        pbar.set_postfix(
+            {"Batch": idx, "Pixel-wise accuracy": sum(accuracies) / len(accuracies), "Loss": sum(losses) / len(losses)}
+        )
+
+        # backward + optimize
+        loss.backward()
+        optimizer.step()
+    else:
+        model.eval()
+        with torch.no_grad():
+            for idx, batch in enumerate(valid_dataloader):
+                pixel_values = batch["pixel_values"].to(device)
+                labels = batch["labels"].to(device)
+
+                outputs = model(pixel_values=pixel_values, labels=labels)
+                upsampled_logits = nn.functional.interpolate(
+                    outputs.logits, size=labels.shape[-2:], mode="bilinear", align_corners=False
+                )
+                predicted = upsampled_logits.argmax(dim=1)
+
+                mask = labels != 0  # we don't include the background class in the accuracy calculation
+                pred_labels = predicted[mask].detach().cpu().numpy()
+                true_labels = labels[mask].detach().cpu().numpy()
+                accuracy = accuracy_score(pred_labels, true_labels)
+                val_loss = outputs.loss
+                val_accuracies.append(accuracy)
+                val_losses.append(val_loss.item())
+    # writer.add_scalar('Loss/train', sum(losses)/len(losses), epoch)
+    # writer.add_scalar('Loss/val', sum(val_losses)/len(val_losses), epoch)
+    # writer.add_scalar('Accuracy/train', sum(accuracies)/len(accuracies), epoch)
+    # writer.add_scalar('Accuracy/val', sum(val_accuracies)/len(val_accuracies), epoch)
+    print(
+        f"Train Pixel-wise accuracy: {sum(accuracies)/len(accuracies)}\
+         Train Loss: {sum(losses)/len(losses)}\
+         Val Pixel-wise accuracy: {sum(val_accuracies)/len(val_accuracies)}\
+         Val Loss: {sum(val_losses)/len(val_losses)}"
+    )
+#writer.flush()

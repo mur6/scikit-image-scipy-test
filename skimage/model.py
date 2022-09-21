@@ -6,7 +6,7 @@ class Net(nn.Module):
     def __init__(self):
         super().__init__()
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(1, 64, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
             nn.Conv2d(64, 64, kernel_size=3, padding=1, bias=False),
@@ -42,18 +42,25 @@ class Net(nn.Module):
         )
         hidden_dim = 1024
         self.fc = nn.Sequential(
-            nn.Linear(128 * 16 * 16, hidden_dim),
+            nn.Linear(49*32*32*2, hidden_dim),
             nn.ReLU(True),
             nn.Dropout(0.5),
             nn.Linear(hidden_dim, 4)
         )
 
-    def forward(self, x):
-        out = self.layer1(x)
+    def forward(self, masks):
+        masks = torch.unsqueeze(masks, 1)
+        #print(masks.shape)
+        out = self.layer1(masks.float())
+        #print("1:", out.shape)
         out = self.layer2(out)
+        #print("2:", out.shape)
         out = self.layer3(out)
+        #print("3:", out.shape)
         out = self.layer4(out)
-        out = out.contiguous().view(x.size(0), -1)
+        #print("4:", out.shape)
+        out = out.contiguous().view(masks.size(0), -1)
+        #print("5:", out.shape)
         out = self.fc(out)
         return out
 
