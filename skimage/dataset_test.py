@@ -2,7 +2,7 @@ from pathlib import Path
 from dataset import RingFingerDataset
 
 #base_data_dir = Path("data/outputs")
-base_data_dir = Path("./data/")
+base_data_dir = Path("./data/outputs/")
 
 numbers_json_filepath = "data/contour_checked_numbers.json"
 
