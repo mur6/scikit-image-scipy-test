@@ -35,8 +35,11 @@ def solve_points(mask):
     #print("length: ", len(contours))
     contour = contours[0][:, ::-1]
     point1, point2 = (contour[0], contour[-1])
+    points = np.concatenate([point1, point2])
+    #np.array(point1 + point2)
     #print(point1, point2)
-    return np.array([point1, point2])
+    #print(points)
+    return points
 
 
 def load_json(filename):

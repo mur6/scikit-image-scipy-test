@@ -30,6 +30,7 @@ from tqdm import tqdm
 
 model = Net()
 
+criterion = nn.MSELoss()
 optimizer = AdamW(model.parameters(), lr=0.00006)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -38,7 +39,7 @@ print("Model Initialized!")
 # from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter()
 
-for epoch in range(1, 1+ 1):  # loop over the dataset multiple times
+for epoch in range(1, 3 + 1):  # loop over the dataset multiple times
     print("Epoch:", epoch)
     pbar = tqdm(train_dataloader)
     accuracies = []
@@ -46,71 +47,76 @@ for epoch in range(1, 1+ 1):  # loop over the dataset multiple times
     val_accuracies = []
     val_losses = []
     model.train()
+    train_loss = 0.0
     for idx, batch in enumerate(pbar):
         # get the inputs;
         masks = batch[1]
-        print(masks.unique())
+        # print(masks.unique())
         masks[masks==2] = -1
-        # masks.to(device)
-        points = batch[2]
-        print(masks.shape, masks.dtype, points.shape)
+        masks = masks.to(device)
+        points = batch[2].to(device)
+        #print(masks.shape, masks.dtype, points.shape)
 
         # zero the parameter gradients
         optimizer.zero_grad()
 
         # forward
         outputs = model(masks=masks)
-        print(outputs)
+        # print()
+        # print(outputs.dtype)
 
         # evaluate
-        upsampled_logits = nn.functional.interpolate(
-            outputs.logits, size=labels.shape[-2:], mode="bilinear", align_corners=False
-        )
-        predicted = upsampled_logits.argmax(dim=1)
+        points = ((points - (224 / 2.0)) / 112.0).float()
 
-        mask = labels != 0  # we don't include the background class in the accuracy calculation
-
-        pred_labels = predicted[mask].detach().cpu().numpy()
-        true_labels = labels[mask].detach().cpu().numpy()
-        accuracy = accuracy_score(pred_labels, true_labels)
-        loss = outputs.loss
-        accuracies.append(accuracy)
-        losses.append(loss.item())
-        pbar.set_postfix(
-            {"Batch": idx, "Pixel-wise accuracy": sum(accuracies) / len(accuracies), "Loss": sum(losses) / len(losses)}
-        )
+        # pred_labels = predicted[mask].detach().cpu().numpy()
+        # true_labels = labels[mask].detach().cpu().numpy()
+        # accuracy = accuracy_score(pred_labels, true_labels)
+        # accuracies.append(accuracy)
+        # pbar.set_postfix(
+        #     {"Batch": idx, "Pixel-wise accuracy": sum(accuracies) / len(accuracies), "Loss": sum(losses) / len(losses)}
+        # )
 
         # backward + optimize
+        loss = criterion(outputs, points)
+        train_loss += loss.item()
         loss.backward()
         optimizer.step()
     else:
         model.eval()
+        val_loss = 0.0
         with torch.no_grad():
             for idx, batch in enumerate(valid_dataloader):
-                pixel_values = batch["pixel_values"].to(device)
-                labels = batch["labels"].to(device)
+                masks = batch[1]
+                masks[masks==2] = -1
+                masks = masks.to(device)
+                points = batch[2].to(device)
+                points = (points - (224 / 2.0)) / 112.0
+                outputs = model(masks=masks)
+                # upsampled_logits = nn.functional.interpolate(
+                #     outputs.logits, size=labels.shape[-2:], mode="bilinear", align_corners=False
+                # )
+                # predicted = upsampled_logits.argmax(dim=1)
 
-                outputs = model(pixel_values=pixel_values, labels=labels)
-                upsampled_logits = nn.functional.interpolate(
-                    outputs.logits, size=labels.shape[-2:], mode="bilinear", align_corners=False
-                )
-                predicted = upsampled_logits.argmax(dim=1)
-
-                mask = labels != 0  # we don't include the background class in the accuracy calculation
-                pred_labels = predicted[mask].detach().cpu().numpy()
-                true_labels = labels[mask].detach().cpu().numpy()
-                accuracy = accuracy_score(pred_labels, true_labels)
-                val_loss = outputs.loss
-                val_accuracies.append(accuracy)
-                val_losses.append(val_loss.item())
+                # mask = labels != 0  # we don't include the background class in the accuracy calculation
+                # pred_labels = predicted[mask].detach().cpu().numpy()
+                # true_labels = labels[mask].detach().cpu().numpy()
+                # accuracy = accuracy_score(pred_labels, true_labels)
+                # val_loss = outputs.loss
+                # val_accuracies.append(accuracy)
+                # val_losses.append(val_loss.item())
+                loss = criterion(outputs, points)
+                val_loss += loss.item()
     # writer.add_scalar('Loss/train', sum(losses)/len(losses), epoch)
     # writer.add_scalar('Loss/val', sum(val_losses)/len(val_losses), epoch)
     # writer.add_scalar('Accuracy/train', sum(accuracies)/len(accuracies), epoch)
     # writer.add_scalar('Accuracy/val', sum(val_accuracies)/len(val_accuracies), epoch)
-    print(
-        f"Train Pixel-wise accuracy: {sum(accuracies)/len(accuracies)}\
-         Train Loss: {sum(losses)/len(losses)}\
-         Val Pixel-wise accuracy: {sum(val_accuracies)/len(val_accuracies)}\
-         Val Loss: {sum(val_losses)/len(val_losses)}"
-    )
+    # f"Train Pixel-wise accuracy: {sum(accuracies)/len(accuracies)}"
+    # f"Train Loss: {sum(losses)/len(losses)}"
+    # f"Val Pixel-wise accuracy: {sum(val_accuracies)/len(val_accuracies)}"
+    # f"Val Loss: {sum(val_losses)/len(val_losses)}"
+    train_count = len(train_dataloader)
+    val_count = len(valid_dataloader)
+    s1 = f"Training: Mean Squared Error: {train_loss/train_count}"
+    s2 = f"Validation: Mean Squared Error: {val_loss/val_count}"
+    print(s1 + " " + s2)
 #writer.flush()
