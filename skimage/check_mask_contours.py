@@ -11,9 +11,9 @@ from skimage import measure
 
 def iter_image_mask_paths(base_path):
     base = Path(base_path)
-    mask_path = base / "training/masks"
+    mask_path = base / "masks"
     mask_path_iter = mask_path.glob("*.png")
-    image_path = base / "training/images"
+    image_path = base / "images"
     image_path_iter = image_path.glob("*.jpg")
     images = sorted(image_path_iter, key=lambda p: p.name)
     masks = sorted(mask_path_iter, key=lambda p: p.name)
@@ -58,11 +58,12 @@ def main(args):
                 pass
     nums = list(_iter_contour_checked_number())
     j = json.dumps(nums, indent=4)
-    Path("contour_checked_numbers.json").write_text(j)
+    args.output_file_path.write_text(j)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_base_path", type=Path, default="data/outputs")
+    parser.add_argument("--output_file_path", type=Path, default="data/contour_checked_numbers.json")
     args = parser.parse_args()
     main(args)
