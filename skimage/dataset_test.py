@@ -4,7 +4,7 @@ from dataset import RingFingerDataset
 #base_data_dir = Path("data/outputs")
 base_data_dir = Path("./data/")
 
-numbers_json_filepath = "contour_checked_numbers.json"
+numbers_json_filepath = "data/contour_checked_numbers.json"
 
 train_dataset = RingFingerDataset(base_data_dir / "training", numbers_json_filepath)
 valid_dataset = RingFingerDataset(base_data_dir / "validation", numbers_json_filepath)
