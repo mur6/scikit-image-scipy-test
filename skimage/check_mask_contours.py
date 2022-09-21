@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 import json
 
@@ -8,11 +9,11 @@ import numpy as np
 from skimage import measure
 
 
-def iter_image_mask_paths():
-    base = Path("../blender-for-finger-segmentation/")
-    mask_path = base / "data2/training/masks"
+def iter_image_mask_paths(base_path):
+    base = Path(base_path)
+    mask_path = base / "training/masks"
     mask_path_iter = mask_path.glob("*.png")
-    image_path = base / "data2/training/images"
+    image_path = base / "training/images"
     image_path_iter = image_path.glob("*.jpg")
     images = sorted(image_path_iter, key=lambda p: p.name)
     masks = sorted(mask_path_iter, key=lambda p: p.name)
@@ -42,9 +43,9 @@ def to_num(name):
     num = name.split("_")[1]
     return int(num)
 
-def main():
+def main(args):
     def _iter_contour_checked_number():
-        for i, (image_path, mask_path) in enumerate(iter_image_mask_paths()):
+        for i, (image_path, mask_path) in enumerate(iter_image_mask_paths(args.dataset_base_path)):
             try:
                 img, point1, point2 = load_mask(mask_path)
                 #print(points)
@@ -61,4 +62,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset_base_path", type=Path, default="data/outputs")
+    args = parser.parse_args()
+    main(args)
