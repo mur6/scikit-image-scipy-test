@@ -2,10 +2,12 @@ from pathlib import Path
 from dataset import RingFingerDataset
 
 #base_data_dir = Path("data/outputs")
-base_data_dir = Path("../blender-for-finger-segmentation/data2/")
+base_data_dir = Path("./data/")
 
-train_dataset = RingFingerDataset(base_data_dir / "training", "contour_checked_numbers.json", transform=None)
-valid_dataset = RingFingerDataset(base_data_dir / "validation", "contour_checked_numbers.json", transform=None)
+numbers_json_filepath = "contour_checked_numbers.json"
+
+train_dataset = RingFingerDataset(base_data_dir / "training", numbers_json_filepath)
+valid_dataset = RingFingerDataset(base_data_dir / "validation", numbers_json_filepath)
 
 from torch import nn
 from torch.utils.data import DataLoader
